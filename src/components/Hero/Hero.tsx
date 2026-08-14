@@ -56,7 +56,7 @@ export default function Hero() {
             animate="show"
             variants={heroTitleContainer}
             className="font-display font-medium leading-[0.92] mt-5 text-center md:text-left
-                       text-[13vw] sm:text-[10vw] md:text-[6.4vw] lg:text-[6vw] text-mist-100"
+                       text-[13vw] sm:text-[10vw] md:text-[6.4vw] lg:text-[6vw] text-mist-100 whitespace-nowrap"
             style={{ perspective: 800 }}
           >
             <span className="block overflow-hidden">
