@@ -67,7 +67,7 @@ pipeline {
                 echo '========== SONARQUBE ANALYSIS =========='
                 echo 'Starting SonarQube code analysis...'
 
-                withSonarQubeEnv('SonarQube') {
+                withSonarQubeEnv('sonar-server') {
 
                     withCredentials([
                         string(
