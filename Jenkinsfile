@@ -9,7 +9,7 @@ pipeline {
     }
 
     tools {
-        nodejs 'nodejs'
+        nodejs 'node20'
         // Make sure "nodejs" exists under:
         // Manage Jenkins → Tools → NodeJS installations
     }
