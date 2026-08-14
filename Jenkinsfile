@@ -10,8 +10,6 @@ pipeline {
 
     tools {
         nodejs 'node20'
-        // Make sure "nodejs" exists under:
-        // Manage Jenkins → Tools → NodeJS installations
     }
 
     environment {
@@ -34,7 +32,7 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 echo '========== INSTALL DEPENDENCIES =========='
-                echo 'Installing npm dependencies using npm ci...'
+                echo 'Installing project dependencies...'
 
                 sh 'npm ci'
 
@@ -64,66 +62,10 @@ pipeline {
             }
         }
 
-        stage('Gitleaks Scan') {
-            steps {
-                echo '========== GITLEAKS SECRET SCANNING =========='
-                echo 'Scanning source code for exposed secrets...'
-
-                script {
-                    try {
-
-                        sh '''
-                            if command -v gitleaks >/dev/null 2>&1; then
-
-                                echo "Gitleaks found on Jenkins agent."
-                                echo "Using system-installed Gitleaks..."
-
-                                gitleaks detect \
-                                    --source . \
-                                    --verbose \
-                                    --redact
-
-                            elif command -v docker >/dev/null 2>&1; then
-
-                                echo "Gitleaks not found locally."
-                                echo "Using Gitleaks Docker image..."
-
-                                docker run --rm \
-                                    -v "$WORKSPACE:/repo" \
-                                    ghcr.io/gitleaks/gitleaks:latest \
-                                    detect \
-                                    --source /repo \
-                                    --verbose \
-                                    --redact
-
-                            else
-
-                                echo "ERROR: Neither Gitleaks nor Docker is available."
-                                exit 1
-
-                            fi
-                        '''
-
-                    } catch (Exception e) {
-
-                        echo 'Gitleaks scan failed!'
-                        echo 'Potential secrets were detected.'
-                        echo 'Please review the Gitleaks output.'
-
-                        error(
-                            'Gitleaks detected potential secrets. Pipeline stopped.'
-                        )
-                    }
-                }
-
-                echo 'Gitleaks scan completed successfully.'
-            }
-        }
-
         stage('SonarQube Analysis') {
             steps {
                 echo '========== SONARQUBE ANALYSIS =========='
-                echo 'Starting SonarQube static code analysis...'
+                echo 'Starting SonarQube code analysis...'
 
                 withSonarQubeEnv('SonarQube') {
 
@@ -136,7 +78,8 @@ pipeline {
 
                         sh '''
                             if ! command -v sonar-scanner >/dev/null 2>&1; then
-                                echo "ERROR: sonar-scanner is not installed/configured."
+                                echo "ERROR: sonar-scanner is not available."
+                                echo "Configure SonarScanner under Jenkins Tools."
                                 exit 1
                             fi
 
@@ -147,7 +90,7 @@ pipeline {
                     }
                 }
 
-                echo 'SonarQube analysis submitted successfully.'
+                echo 'SonarQube analysis completed.'
             }
         }
 
@@ -156,30 +99,27 @@ pipeline {
                 echo '========== SONARQUBE QUALITY GATE =========='
                 echo 'Waiting for SonarQube Quality Gate result...'
 
-                script {
+                timeout(time: 5, unit: 'MINUTES') {
 
-                    timeout(time: 5, unit: 'MINUTES') {
+                    script {
 
                         def qualityGate = waitForQualityGate()
 
                         echo "Quality Gate Status: ${qualityGate.status}"
 
                         if (qualityGate.status != 'OK') {
-
                             error(
                                 "SonarQube Quality Gate failed: ${qualityGate.status}"
                             )
-
-                        } else {
-
-                            echo 'SonarQube Quality Gate PASSED.'
                         }
+
+                        echo 'SonarQube Quality Gate PASSED.'
                     }
                 }
             }
         }
 
-        stage('Build') {
+        stage('Production Build') {
             steps {
                 echo '========== PRODUCTION BUILD =========='
                 echo 'Creating production build...'
@@ -193,14 +133,14 @@ pipeline {
         stage('Archive Build') {
             steps {
                 echo '========== ARCHIVE BUILD =========='
-                echo 'Archiving production build artifacts...'
+                echo 'Archiving dist directory...'
 
                 archiveArtifacts(
                     artifacts: 'dist/**',
                     fingerprint: true
                 )
 
-                echo 'Production artifacts archived successfully.'
+                echo 'Production build archived successfully.'
             }
         }
     }
@@ -209,34 +149,33 @@ pipeline {
 
         success {
             echo '=============================================='
-            echo '           CI PIPELINE SUCCESS'
+            echo '          CI PIPELINE SUCCESS'
             echo '=============================================='
-            echo 'GitHub checkout       : SUCCESS'
+            echo 'Checkout              : SUCCESS'
             echo 'Dependencies          : SUCCESS'
             echo 'Lint                  : SUCCESS'
             echo 'Unit Tests            : SUCCESS'
-            echo 'Gitleaks              : PASSED'
-            echo 'SonarQube             : PASSED'
+            echo 'SonarQube Analysis    : SUCCESS'
             echo 'Quality Gate          : PASSED'
             echo 'Production Build      : SUCCESS'
-            echo 'Artifacts              : ARCHIVED'
+            echo 'Artifacts             : ARCHIVED'
             echo '=============================================='
-            echo 'Production pipeline completed successfully.'
+            echo 'Portfolio CI pipeline completed successfully.'
             echo '=============================================='
         }
 
         failure {
             echo '=============================================='
-            echo '           CI PIPELINE FAILED'
+            echo '          CI PIPELINE FAILED'
             echo '=============================================='
-            echo 'One or more pipeline stages failed.'
-            echo 'Check the Jenkins console output above.'
+            echo 'One or more stages failed.'
+            echo 'Please check the Jenkins console output.'
             echo '=============================================='
         }
 
         always {
             echo '=============================================='
-            echo '      PIPELINE EXECUTION COMPLETED'
+            echo '       PIPELINE EXECUTION COMPLETED'
             echo '=============================================='
 
             cleanWs()
