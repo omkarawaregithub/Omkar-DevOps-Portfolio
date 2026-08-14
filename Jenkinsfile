@@ -76,21 +76,21 @@ pipeline {
                         )
                     ]) {
 
-                        sh '''
-                            if ! command -v sonar-scanner >/dev/null 2>&1; then
-                                echo "ERROR: sonar-scanner is not available."
-                                echo "Configure SonarScanner under Jenkins Tools."
-                                exit 1
-                            fi
+                        script {
+                            def scannerHome = tool 'sonar-scanner'
 
-                            sonar-scanner \
-                                -Dsonar.projectBaseDir=. \
-                                -Dsonar.token="$SONAR_TOKEN"
-                        '''
+                            sh """
+                                echo "Using SonarScanner from: ${scannerHome}"
+
+                                ${scannerHome}/bin/sonar-scanner \
+                                    -Dsonar.projectBaseDir=. \
+                                    -Dsonar.token="\$SONAR_TOKEN"
+                            """
+                        }
                     }
                 }
 
-                echo 'SonarQube analysis completed.'
+                echo 'SonarQube analysis completed successfully.'
             }
         }
 
