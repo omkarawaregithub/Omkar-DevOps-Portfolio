@@ -71,7 +71,7 @@ pipeline {
 
                     withCredentials([
                         string(
-                            credentialsId: 'sonarqube-token',
+                            credentialsId: 'sonarqubq-token',
                             variable: 'SONAR_TOKEN'
                         )
                     ]) {
