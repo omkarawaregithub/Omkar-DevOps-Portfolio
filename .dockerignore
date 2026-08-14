@@ -26,4 +26,3 @@ LICENSE
 .prettierrc
 .eslintignore
 vitest.config.ts
-tsconfig.node.json
